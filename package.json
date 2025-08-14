@@ -1,6 +1,6 @@
 {
   "name": "somali-id-validator",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Validate Somali National ID fields with enhanced date formats, trilingual support (English/Somali/Arabic), interactive CLI, batch processing, and privacy helpers. Performance optimized with comprehensive error handling.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
