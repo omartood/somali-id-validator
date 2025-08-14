@@ -1,0 +1,32 @@
+{
+  "name": "somali-id-validator",
+  "version": "0.1.0",
+  "description": "Validate Somali National ID fields (format, dates, gender) with privacy helpers (mask, redact) and a tiny CLI. Bilingual error messages in English and Somali (Af-Soomaali).",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "bin": {
+    "somalid": "bin/somalid.js"
+  },
+  "scripts": {
+    "test": "node test.js && node integration-test.js",
+    "examples": "node examples.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "somalia",
+    "id",
+    "national-id",
+    "validator",
+    "NIRA",
+    "kaarka aqoonsiga"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  }
+}
