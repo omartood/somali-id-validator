@@ -1,0 +1,110 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:all
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## 🚀 Somali ID Validator v${{ steps.version.outputs.VERSION }}
+            
+            ### What's New
+            See [CHANGELOG.md](https://github.com/omartood/somali-id-validator/blob/main/CHANGELOG.md) for detailed changes.
+            
+            ### Installation
+            ```bash
+            npm install somali-id-validator@${{ steps.version.outputs.VERSION }}
+            ```
+            
+            ### CLI Installation
+            ```bash
+            npm install -g somali-id-validator@${{ steps.version.outputs.VERSION }}
+            ```
+            
+            ### Quick Start
+            ```javascript
+            const ID = require('somali-id-validator');
+            
+            const result = ID.validateRecord({
+              idNumber: '934265782412',
+              name: 'Ahmed Hassan Mohamed',
+              sex: 'Male',
+              dobDMY: '15-03-1990',
+              issueDMY: '01-01-2020',
+              expiryDMY: '01-01-2030'
+            });
+            ```
+            
+            ### CLI Usage
+            ```bash
+            # Interactive mode
+            somalid interactive
+            
+            # Validate with multiple date formats
+            somalid validate --id 934265782412 --name "Ahmed Hassan" --sex Male --dob 1990-03-15 --issue 01/01/2020 --expiry 01.01.2030
+            
+            # Arabic language support
+            somalid validate --id 934265782412 --name "أحمد حسن" --sex Male --dob 15-03-1990 --issue 01-01-2020 --expiry 01-01-2030 --lang ar
+            ```
+            
+            ---
+            
+            **Full Documentation**: [README.md](https://github.com/omartood/somali-id-validator#readme)
+            
+            **NPM Package**: [somali-id-validator](https://www.npmjs.com/package/somali-id-validator)
+          draft: false
+          prerelease: false
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

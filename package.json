@@ -12,13 +12,16 @@
     "test:v0.2.0": "node test-v0.2.0.js",
     "test:comprehensive": "node test-comprehensive.js",
     "test:all": "npm test && npm run test:v0.2.0 && npm run test:comprehensive",
-    "examples": "node examples.js"
+    "examples": "node examples.js",
+    "release": "./scripts/release.sh",
+    "prepack": "npm run test:all"
   },
   "files": [
     "src",
     "bin",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "keywords": [
     "somalia",
@@ -26,9 +29,27 @@
     "national-id",
     "validator",
     "NIRA",
-    "kaarka aqoonsiga"
+    "kaarka aqoonsiga",
+    "arabic",
+    "trilingual",
+    "validation",
+    "privacy",
+    "cli"
   ],
+  "author": {
+    "name": "Omar Jibril",
+    "email": "omarjibrilabdulkhadir@gmail.com",
+    "url": "https://github.com/omartood"
+  },
   "license": "MIT",
+  "homepage": "https://github.com/omartood/somali-id-validator#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omartood/somali-id-validator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/omartood/somali-id-validator/issues"
+  },
   "engines": {
     "node": ">=14"
   }

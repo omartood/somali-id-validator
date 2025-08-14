@@ -4,6 +4,9 @@ A comprehensive Node.js package for validating Somali National ID cards with enh
 
 [![npm version](https://badge.fury.io/js/somali-id-validator.svg)](https://badge.fury.io/js/somali-id-validator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/omartood/somali-id-validator.svg)](https://github.com/omartood/somali-id-validator/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/omartood/somali-id-validator.svg)](https://github.com/omartood/somali-id-validator/issues)
+[![GitHub forks](https://img.shields.io/github/forks/omartood/somali-id-validator.svg)](https://github.com/omartood/somali-id-validator/network)
 
 ## ✨ Features
 
@@ -412,7 +415,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Development Setup
 ```bash
-git clone https://github.com/yourusername/somali-id-validator.git
+git clone https://github.com/omartood/somali-id-validator.git
 cd somali-id-validator
 npm install
 npm test

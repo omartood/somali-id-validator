@@ -1,0 +1,122 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.0)'
+        required: true
+        type: string
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - prerelease
+      npm_publish:
+        description: 'Publish to NPM'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run comprehensive tests
+        run: npm run test:all
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update package version
+        run: npm version ${{ github.event.inputs.version }} --no-git-tag-version
+
+      - name: Create and push tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "Release v${{ github.event.inputs.version }}"
+          git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+          git push origin main
+          git push origin "v${{ github.event.inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release v${{ github.event.inputs.version }}
+          body: |
+            ## 🚀 Somali ID Validator v${{ github.event.inputs.version }}
+            
+            ### What's New
+            See [CHANGELOG.md](https://github.com/omartood/somali-id-validator/blob/main/CHANGELOG.md) for detailed changes.
+            
+            ### Installation
+            ```bash
+            npm install somali-id-validator@${{ github.event.inputs.version }}
+            ```
+            
+            ### CLI Installation
+            ```bash
+            npm install -g somali-id-validator@${{ github.event.inputs.version }}
+            ```
+            
+            ### Features
+            - 🔍 Complete ID validation with enhanced date formats
+            - 🌍 Trilingual support (English/Somali/Arabic)
+            - ⚡ Interactive CLI with batch processing
+            - 🔒 Privacy features with masking and redaction
+            - 🚀 Performance optimized with caching
+            - 📝 Full TypeScript support
+            
+            ---
+            
+            **Documentation**: [README.md](https://github.com/omartood/somali-id-validator#readme)
+            **NPM Package**: [somali-id-validator](https://www.npmjs.com/package/somali-id-validator)
+          draft: false
+          prerelease: ${{ github.event.inputs.release_type == 'prerelease' }}
+
+      - name: Publish to NPM
+        if: ${{ github.event.inputs.npm_publish == 'true' }}
+        run: |
+          if [ "${{ github.event.inputs.release_type }}" == "prerelease" ]; then
+            npm publish --tag beta
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
