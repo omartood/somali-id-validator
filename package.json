@@ -1,7 +1,7 @@
 {
   "name": "somali-id-validator",
-  "version": "0.1.0",
-  "description": "Validate Somali National ID fields (format, dates, gender) with privacy helpers (mask, redact) and a tiny CLI. Bilingual error messages in English and Somali (Af-Soomaali).",
+  "version": "0.2.0",
+  "description": "Validate Somali National ID fields with enhanced date formats, trilingual support (English/Somali/Arabic), interactive CLI, batch processing, and privacy helpers. Performance optimized with comprehensive error handling.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "bin": {
@@ -9,6 +9,9 @@
   },
   "scripts": {
     "test": "node test.js && node integration-test.js",
+    "test:v0.2.0": "node test-v0.2.0.js",
+    "test:comprehensive": "node test-comprehensive.js",
+    "test:all": "npm test && npm run test:v0.2.0 && npm run test:comprehensive",
     "examples": "node examples.js"
   },
   "files": [

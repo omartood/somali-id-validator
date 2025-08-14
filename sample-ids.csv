@@ -1,0 +1,4 @@
+idNumber,name,sex,dobDMY,issueDMY,expiryDMY
+934265782412,Ahmed Hassan Mohamed,Male,15-03-1990,01-01-2020,01-01-2030
+987654321098,Fatima Ali Hassan,Female,20/05/1985,01/01/2020,01.01.2030
+12345,Invalid User,Male,1988-12-10,01-01-2020,01-01-2030

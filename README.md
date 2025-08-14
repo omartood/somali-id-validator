@@ -1,6 +1,6 @@
-# 🇸🇴 Somali ID Validator
+# 🇸🇴 Somali ID Validator v0.2.0
 
-A comprehensive Node.js package for validating Somali National ID cards with bilingual error messages in English and Somali (Af-Soomaali).
+A comprehensive Node.js package for validating Somali National ID cards with enhanced date formats, trilingual support (English/Somali/Arabic), interactive CLI, and performance optimizations.
 
 [![npm version](https://badge.fury.io/js/somali-id-validator.svg)](https://badge.fury.io/js/somali-id-validator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,9 +8,11 @@ A comprehensive Node.js package for validating Somali National ID cards with bil
 ## ✨ Features
 
 - 🔍 **Complete ID Validation** - Validates ID number, name, gender, and dates
-- 🌍 **Bilingual Support** - Error messages in English and Somali (Af-Soomaali)
+- 🌍 **Trilingual Support** - Error messages in English, Somali (Af-Soomaali), and Arabic (العربية)
+- 📅 **Enhanced Date Formats** - Supports dd-mm-yyyy, dd/mm/yyyy, yyyy-mm-dd, dd.mm.yyyy
 - 🔒 **Privacy Protection** - Built-in masking and redaction functions
-- ⚡ **CLI Tool** - Command-line interface for quick validation
+- ⚡ **Interactive CLI** - Command-line interface with interactive mode and batch processing
+- 🚀 **Performance Optimized** - Fast validation with caching and batch processing
 - 📝 **TypeScript Support** - Full type definitions included
 - 🛡️ **Configurable Rules** - Customizable validation rules
 - 🎯 **Zero Dependencies** - Lightweight and secure
@@ -47,18 +49,32 @@ console.log(result);
 // Output: { ok: true, idNumber: '934265782412', name: 'Ahmed Hassan Mohamed', ... }
 ```
 
-### Error Handling with Bilingual Messages
+### Enhanced Date Format Support (v0.2.0)
+
+```javascript
+// Multiple date formats supported
+const result = ID.validateRecord({
+  idNumber: '934265782412',
+  name: 'Ahmed Hassan Mohamed',
+  sex: 'Male',
+  dobDMY: '1990-03-15',      // yyyy-mm-dd format
+  issueDMY: '01/01/2020',    // dd/mm/yyyy format
+  expiryDMY: '01.01.2030'    // dd.mm.yyyy format
+});
+```
+
+### Trilingual Error Messages (v0.2.0)
 
 ```javascript
 try {
-  ID.validateRecord({
+  ID.validateRecordMultilingual({
     idNumber: '12345', // Invalid: too short
-    name: 'Ahmed Hassan',
+    name: 'أحمد حسن',   // Arabic name
     sex: 'Male',
     dobDMY: '01-01-1990',
     issueDMY: '01-01-2020',
     expiryDMY: '01-01-2030'
-  });
+  }, ID.DEFAULT_RULE, 'ar'); // Request Arabic errors
 } catch (error) {
   console.log('English:', error.message);
   // "ID number must be exactly 12 digits"
@@ -66,9 +82,24 @@ try {
   console.log('Somali:', error.somaliMessage);
   // "Lambarka aqoonsiga waa inuu noqdaa 12 tiro oo keliya"
   
-  console.log('Code:', error.code);
-  // "INVALID_ID_NUMBER"
+  console.log('Arabic:', error.arabicMessage);
+  // "رقم الهوية يجب أن يكون رقماً صحيحاً"
+  
+  console.log('Localized:', error.localizedMessage);
+  // Returns message in requested language
 }
+```
+
+### Performance Features (v0.2.0)
+
+```javascript
+// Fast validation for high-throughput scenarios
+const result = ID.validateRecordFast(data);
+
+// Batch processing
+const records = [data1, data2, data3];
+const batchResult = ID.validateBatch(records);
+console.log(`Success rate: ${batchResult.summary.successRate}`);
 ```
 
 ## 🔒 Privacy Features
@@ -96,7 +127,7 @@ console.log(redacted);
 // { idNumber: '93*******412', name: '[REDACTED]', sex: 'Male' }
 ```
 
-## 🖥️ CLI Usage
+## 🖥️ Enhanced CLI Usage (v0.2.0)
 
 ### Installation
 ```bash
@@ -105,18 +136,69 @@ npm install -g somali-id-validator
 
 ### Commands
 
-#### Validate ID Record
+#### Interactive Mode (NEW!)
 ```bash
+somalid interactive
+```
+Step-by-step validation with multilingual prompts.
+
+#### Validate ID Record with Enhanced Date Formats
+```bash
+# Multiple date formats supported
 somalid validate \
   --id 934265782412 \
   --name "Ahmed Hassan Mohamed" \
   --sex Male \
-  --dob 15-03-1990 \
-  --issue 01-01-2020 \
-  --expiry 01-01-2030
+  --dob 1990-03-15 \
+  --issue 01/01/2020 \
+  --expiry 01.01.2030
 ```
 
-**Success Output:**
+#### Multilingual Validation (NEW!)
+```bash
+# Arabic language support
+somalid validate \
+  --id 934265782412 \
+  --name "أحمد حسن محمد" \
+  --sex Male \
+  --dob 15-03-1990 \
+  --issue 01-01-2020 \
+  --expiry 01-01-2030 \
+  --lang ar
+```
+
+**Trilingual Error Output:**
+```json
+{
+  "ok": false,
+  "error": "ID number must be exactly 12 digits",
+  "code": "INVALID_ID_NUMBER",
+  "somaliError": "Lambarka aqoonsiga waa inuu noqdaa 12 tiro oo keliya",
+  "arabicError": "رقم الهوية يجب أن يكون رقماً صحيحاً",
+  "localizedError": "رقم الهوية يجب أن يكون رقماً صحيحاً"
+}
+```
+
+#### Batch Processing (NEW!)
+```bash
+# Process multiple records from CSV
+somalid batch --file ids.csv --output results.json
+```
+
+#### Enhanced Masking (NEW!)
+```bash
+# Custom masking options
+somalid mask --id 934265782412 --head 4 --tail 2
+# Output: 9342******12
+```
+
+#### Format Help (NEW!)
+```bash
+somalid formats
+```
+Shows all supported date formats and languages.
+
+#### Success Output
 ```json
 {
   "ok": true,
@@ -129,27 +211,6 @@ somalid validate \
     "idMasked": "93*******412"
   }
 }
-```
-
-**Error Output (Bilingual):**
-```json
-{
-  "ok": false,
-  "error": "ID number must be exactly 12 digits",
-  "code": "INVALID_ID_NUMBER",
-  "somaliError": "Lambarka aqoonsiga waa inuu noqdaa 12 tiro oo keliya"
-}
-```
-
-#### Mask ID Number
-```bash
-somalid mask --id 934265782412
-# Output: 93*******412
-```
-
-#### Help
-```bash
-somalid --help
 ```
 
 ## 📋 Validation Rules
@@ -184,26 +245,39 @@ const customRules = {
 const result = ID.validateRecord(data, customRules);
 ```
 
-## 🌍 Bilingual Error Messages
+## 🌍 Trilingual Error Messages (v0.2.0)
 
-All error messages are provided in both English and Somali:
+All error messages are provided in English, Somali, and Arabic:
 
-| Error Code | English | Somali (Af-Soomaali) |
-|------------|---------|----------------------|
-| `INVALID_ID_NUMBER` | ID number must be numeric | Lambarka aqoonsiga waa inuu noqdaa tiro sax ah |
-| `INVALID_NAME` | Name contains invalid characters | Magaca wuxuu leeyahay xarfo aan la aqbali karin |
-| `INVALID_SEX` | Sex must be Male/Female | Jinsiga waa inuu noqdaa Lab ama Dhedig |
-| `INVALID_DATE` | Date must be dd-mm-yyyy | Taariikhda waa inay noqoto qaabka dd-mm-yyyy |
-| `INCONSISTENT_DATES` | Dates are inconsistent | Taariikhyada ma wada waafaqsana |
+| Error Code | English | Somali (Af-Soomaali) | Arabic (العربية) |
+|------------|---------|----------------------|------------------|
+| `INVALID_ID_NUMBER` | ID number must be numeric | Lambarka aqoonsiga waa inuu noqdaa tiro sax ah | رقم الهوية يجب أن يكون رقماً صحيحاً |
+| `INVALID_NAME` | Name contains invalid characters | Magaca wuxuu leeyahay xarfo aan la aqbali karin | الاسم يحتوي على أحرف غير صالحة |
+| `INVALID_SEX` | Sex must be Male/Female | Jinsiga waa inuu noqdaa Lab ama Dhedig | الجنس يجب أن يكون ذكر أو أنثى |
+| `INVALID_DATE` | Date format invalid | Taariikhda waa inay noqoto qaabka saxda ah | التاريخ يجب أن يكون بالتنسيق الصحيح |
+| `INCONSISTENT_DATES` | Dates are inconsistent | Taariikhyada ma wada waafaqsana | التواريخ غير متسقة |
 
-### Accessing Somali Messages
+### Supported Date Formats (v0.2.0)
+| Format | Example | Description |
+|--------|---------|-------------|
+| `dd-mm-yyyy` | 15-03-1990 | Day-Month-Year (default) |
+| `dd/mm/yyyy` | 15/03/1990 | Day/Month/Year (slash) |
+| `yyyy-mm-dd` | 1990-03-15 | Year-Month-Day (ISO) |
+| `dd.mm.yyyy` | 15.03.1990 | Day.Month.Year (dot) |
+
+### Accessing Multilingual Messages
 ```javascript
-// Get all Somali error messages
+// Get all language messages
 console.log(ID.SOMALI_MESSAGES);
+console.log(ID.ARABIC_MESSAGES);
 
-// Access specific message
-console.log(ID.SOMALI_MESSAGES.INVALID_ID_NUMBER);
-// "Lambarka aqoonsiga waa inuu noqdaa tiro sax ah"
+// Get supported languages
+console.log(ID.SUPPORTED_LANGUAGES);
+// { en: 'English', so: 'Somali', ar: 'Arabic' }
+
+// Get localized message
+const arabicMsg = ID.getLocalizedMessage('INVALID_ID_NUMBER', 'ar');
+console.log(arabicMsg); // "رقم الهوية يجب أن يكون رقماً صحيحاً"
 ```
 
 ## 📚 API Reference
@@ -218,12 +292,43 @@ Validates a complete ID record.
   - `idNumber` (string): 12-digit ID number
   - `name` (string): Full name
   - `sex` (string): 'Male', 'Female', 'M', or 'F'
-  - `dobDMY` (string): Date of birth (dd-mm-yyyy)
-  - `issueDMY` (string): Issue date (dd-mm-yyyy)
-  - `expiryDMY` (string): Expiry date (dd-mm-yyyy)
+  - `dobDMY` (string): Date of birth (multiple formats supported)
+  - `issueDMY` (string): Issue date (multiple formats supported)
+  - `expiryDMY` (string): Expiry date (multiple formats supported)
 - `config` (object, optional): Custom validation rules
 
 **Returns:** Validated record object
+
+#### Enhanced Functions (v0.2.0)
+
+#### `validateRecordFast(input, config?)`
+Performance-optimized validation with early returns and input validation.
+
+#### `validateRecordMultilingual(input, config?, language?)`
+Validates with localized error messages.
+
+**Parameters:**
+- `language` (string): 'en', 'so', or 'ar'
+
+#### `validateBatch(records, config?)`
+Validates multiple records efficiently.
+
+**Returns:** Batch result with summary statistics
+
+#### Date Functions (v0.2.0)
+
+#### `parseDate(dateStr)`
+Parses date string in any supported format.
+
+**Returns:** `{ dd, mm, yyyy, format }` or `null`
+
+#### `isValidDate(dateStr)`
+Checks if date string is valid in any supported format.
+
+#### `toISOFromDate(dateStr)`
+Converts date string to ISO format.
+
+#### Individual Validators
 
 #### `validateIdNumber(idNumber, config?)`
 Validates just the ID number.

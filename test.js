@@ -79,7 +79,7 @@ const tests = [
     name: '❌ Invalid date format',
     test: () => {
       try {
-        ID.validateRecord({ ...validRecord, dobDMY: '1990-03-15' });
+        ID.validateRecord({ ...validRecord, dobDMY: '1990/15/03' }); // Invalid: month > 12
         return false;
       } catch (e) {
         console.log('Expected error:', e.message);

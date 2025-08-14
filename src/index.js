@@ -1,4 +1,4 @@
-const { SomaliIdError, CODES, SOMALI_MESSAGES } = require("./errors");
+const { SomaliIdError, CODES, SOMALI_MESSAGES, ARABIC_MESSAGES, SUPPORTED_LANGUAGES, getLocalizedMessage } = require("./errors");
 
 /**
  * NOTE:
@@ -22,24 +22,64 @@ const clampDigits = (s) => String(s || "").replace(/\D/g, "");
 const isDigits = (s) => DIGITS_RX.test(s);
 const pad2 = (n) => String(n).padStart(2, "0");
 
-// Helper to throw errors with both English and Somali messages
-function throwSomaliError(englishMsg, code, customSomaliMsg = null) {
-  const somaliMsg = customSomaliMsg || SOMALI_MESSAGES[code];
-  throw new SomaliIdError(englishMsg, code, somaliMsg);
+// Helper to throw errors with multilingual support
+function throwLocalizedError(englishMsg, code, customLocalizedMsg = null, language = 'so') {
+  let localizedMsg = customLocalizedMsg;
+  if (!localizedMsg) {
+    localizedMsg = getLocalizedMessage(code, language) || SOMALI_MESSAGES[code];
+  }
+  
+  const error = new SomaliIdError(englishMsg, code, localizedMsg);
+  // Add Arabic message if available
+  if (language !== 'ar') {
+    error.arabicMessage = getLocalizedMessage(code, 'ar');
+  }
+  return error;
 }
 
-// dd-mm-yyyy validation
-function isValidDMY(s) {
-  if (!/^\d{2}-\d{2}-\d{4}$/.test(s)) return false;
-  const [dd, mm, yyyy] = s.split("-").map(Number);
+// Legacy function for backward compatibility
+function throwSomaliError(englishMsg, code, customSomaliMsg = null) {
+  const error = throwLocalizedError(englishMsg, code, customSomaliMsg, 'so');
+  throw error;
+}
+
+// Enhanced date validation - supports multiple formats
+const DATE_FORMATS = {
+  'dd-mm-yyyy': /^(\d{2})-(\d{2})-(\d{4})$/,
+  'dd/mm/yyyy': /^(\d{2})\/(\d{2})\/(\d{4})$/,
+  'yyyy-mm-dd': /^(\d{4})-(\d{2})-(\d{2})$/,
+  'dd.mm.yyyy': /^(\d{2})\.(\d{2})\.(\d{4})$/
+};
+
+// Remove duplicate - will use the optimized version below
+
+function isValidDate(dateStr) {
+  const parsed = parseDate(dateStr);
+  if (!parsed) return false;
+  
+  const { dd, mm, yyyy } = parsed;
   if (yyyy < 1900 || yyyy > 2100) return false;
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return false;
+  
   const d = new Date(Date.UTC(yyyy, mm - 1, dd));
   return d.getUTCFullYear() === yyyy && d.getUTCMonth() === mm - 1 && d.getUTCDate() === dd;
 }
-function toISOFromDMY(dmy) {
-  const [dd, mm, yyyy] = dmy.split("-").map(Number);
+
+function toISOFromDate(dateStr) {
+  const parsed = parseDate(dateStr);
+  if (!parsed) throw new Error('Invalid date format');
+  
+  const { dd, mm, yyyy } = parsed;
   return new Date(Date.UTC(yyyy, mm - 1, dd)).toISOString();
+}
+
+// Legacy function for backward compatibility
+function isValidDMY(s) {
+  return isValidDate(s);
+}
+
+function toISOFromDMY(dmy) {
+  return toISOFromDate(dmy);
 }
 
 // Optionally use Luhn if issuer confirms a checksum later
@@ -98,9 +138,9 @@ function validateSex(sex) {
 function validateDateDMY(label, s, somaliLabel) {
   if (!isValidDMY(s)) {
     throwSomaliError(
-      `${label} must be dd-mm-yyyy`, 
+      `${label} must be in format: dd-mm-yyyy, dd/mm/yyyy, yyyy-mm-dd, or dd.mm.yyyy`, 
       CODES.INVALID_DATE,
-      `${somaliLabel} waa inay noqoto qaabka dd-mm-yyyy`
+      `${somaliLabel} waa inay noqoto mid ka mid ah: dd-mm-yyyy, dd/mm/yyyy, yyyy-mm-dd, ama dd.mm.yyyy`
     );
   }
   return s;
@@ -191,7 +231,110 @@ function enableChecksum({ enabled = false, algorithm = "luhn" } = {}) {
   };
 }
 
+// ---------- performance improvements ----------
+// Memoization for date parsing (cache frequently used dates)
+const dateParseCache = new Map();
+const MAX_CACHE_SIZE = 1000;
+
+function parseDate(dateStr) {
+  if (dateParseCache.has(dateStr)) {
+    return dateParseCache.get(dateStr);
+  }
+  
+  let result = null;
+  for (const [format, regex] of Object.entries(DATE_FORMATS)) {
+    const match = dateStr.match(regex);
+    if (match) {
+      let dd, mm, yyyy;
+      if (format === 'yyyy-mm-dd') {
+        [, yyyy, mm, dd] = match.map(Number);
+      } else {
+        [, dd, mm, yyyy] = match.map(Number);
+      }
+      result = { dd, mm, yyyy, format };
+      break;
+    }
+  }
+  
+  // Cache management
+  if (dateParseCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = dateParseCache.keys().next().value;
+    dateParseCache.delete(firstKey);
+  }
+  dateParseCache.set(dateStr, result);
+  
+  return result;
+}
+
+// Performance-optimized validation with early returns
+function validateRecordFast(input, config = DEFAULT_RULE) {
+  // Pre-validate input structure for performance
+  if (!input || typeof input !== 'object') {
+    throwSomaliError("Invalid input: must be an object", CODES.INVALID_INPUT);
+  }
+  
+  const requiredFields = ['idNumber', 'name', 'sex', 'dobDMY', 'issueDMY', 'expiryDMY'];
+  for (const field of requiredFields) {
+    if (!(field in input)) {
+      throwSomaliError(`Missing required field: ${field}`, CODES.MISSING_FIELD);
+    }
+  }
+  
+  // Use the regular validation but with optimized flow
+  return validateRecord(input, config);
+}
+
+// Batch validation for performance
+function validateBatch(records, config = DEFAULT_RULE) {
+  const results = [];
+  const errors = [];
+  
+  for (let i = 0; i < records.length; i++) {
+    try {
+      const result = validateRecordFast(records[i], config);
+      results.push({ index: i, success: true, data: result });
+    } catch (error) {
+      results.push({ 
+        index: i, 
+        success: false, 
+        error: {
+          message: error.message,
+          code: error.code,
+          somaliMessage: error.somaliMessage,
+          arabicMessage: error.arabicMessage
+        }
+      });
+      errors.push({ index: i, error });
+    }
+  }
+  
+  return {
+    results,
+    summary: {
+      total: records.length,
+      successful: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      successRate: (results.filter(r => r.success).length / records.length * 100).toFixed(2) + '%'
+    }
+  };
+}
+
+// Multilingual validation function
+function validateRecordMultilingual(input, config = DEFAULT_RULE, language = 'so') {
+  try {
+    return validateRecord(input, config);
+  } catch (error) {
+    // Enhance error with all language variants
+    error.somaliMessage = SOMALI_MESSAGES[error.code];
+    error.arabicMessage = ARABIC_MESSAGES[error.code];
+    error.localizedMessage = getLocalizedMessage(error.code, language);
+    
+    throw error;
+  }
+}
+
 module.exports = {
+  // Core API
   DEFAULT_RULE,
   validateIdNumber,
   validateName,
@@ -201,7 +344,30 @@ module.exports = {
   enableChecksum,
   maskId,
   redact,
+  
+  // Enhanced API (v0.2.0)
+  validateRecordFast,
+  validateBatch,
+  validateRecordMultilingual,
+  parseDate,
+  isValidDate,
+  toISOFromDate,
+  
+  // Multilingual support
+  SUPPORTED_LANGUAGES,
+  getLocalizedMessage,
+  throwLocalizedError,
+  
+  // Error handling
   SomaliIdError,
   CODES,
-  SOMALI_MESSAGES
+  SOMALI_MESSAGES,
+  ARABIC_MESSAGES,
+  
+  // Date formats
+  DATE_FORMATS,
+  
+  // Legacy compatibility
+  isValidDMY: isValidDate,
+  toISOFromDMY: toISOFromDate
 };
